@@ -1,4 +1,7 @@
 # CKA_notes
+
+  <img width="487" height="263" alt="image" src="https://github.com/user-attachments/assets/2b072250-658e-4662-927c-1c52bc0eda82" />
+
 * Kubernetess purpose is to host the applications in the form of containers in autiomated fashion so that we can easily as many instance of the applications as required to enable communication between different service within our application.
 * There are many thing involved to work with:
 * Master Node:
@@ -78,3 +81,67 @@
         --cert /etc/kubernetes/pki/etcd/server.crt \
         --key /etc/kubernetes/pki/etcd/server.key"
   
+### Kube - apiserver
+
+ <img width="1152" height="308" alt="image" src="https://github.com/user-attachments/assets/93c77df8-5efd-4c35-acb4-6a4abcc66526" />
+
+* It is primary management component in kubernetes.
+* kubectl utility reaches to kube-api server first. Kube-api server authenticate the request, validates it and then retrives the data from etcd cluster and responds back with the requested information.
+* We don't really need to use kubectl cli instead we can directly invoke kube-apis by sending a post request.
+* When we create a pod the request is authenticated fist and validated in this case api-server creates a pod object without signing into a node, update the information in etcd server, update the user the pod is created.
+* The scheduler continuously monitor api-server and realizes there is a new pod  with no node assigned. Scheduler identifies the right node to place the new node on and communicates that back to api server. Api-server then update the information in etcd cluster.
+* Api-server then passes the information to kubelet in the appropriate worker node. Kubelet then creates pod on the node and instruct the container run time engine to deploy the application image.
+* Once done kubelet update the status back to api-server and api - server then updates the data back in the cluster.
+* A similar pattern is followed every time a change is requested. Kube-api server is at the center of all different tasks that needs to be performed to make a change in the cluster.
+* Api-server is responsible for Authenticate User, Validate Request, Retrive data, Update ETCD, Scheduler, kubelet.
+* Kube api-server is the only componet that directly interact with etcd datastrore. The other components such as scheduler, kube-control manager and kubelet uses api-server to perform their updates in the cluster in their respective areas.
+* If we bootstrap our cluster using kubeadmin tool we don't need to know this but if we are setting up in the hardway then kube-api server is available as a binary in kubernetes release page.
+* kube-api server runs with a lot of parameters.
+
+### Kube - Controller - Manager
+  
+ <img width="957" height="346" alt="image" src="https://github.com/user-attachments/assets/7bf5d089-d632-4563-b699-11f1c6818aea" />
+
+* Depends on how you setup to view kube-api server varies if we setup with kubeadm tool, kubeadm deploys kube-api as pod in kube-system namespace on master node.
+
+ <img width="1155" height="333" alt="image" src="https://github.com/user-attachments/assets/b7e13712-44ac-48ea-bb73-6b339e22290a" />
+
+* In on kubeadm setup we can view kube-api server service located at `/etc/systemd/system/kube-apisever.service`.
+* We can see the running processes and effective options by listing the process on the master node `ps -awx| grep kube-apiserver`
+* Controller is a process that continuously monitor the state of the various components within the system and works towards bringing the whole system to the desired functioning state.
+
+   <img width="939" height="237" alt="image" src="https://github.com/user-attachments/assets/c31724ea-7d32-4341-8cc1-ae6eb14c1849" />
+
+* `Node-Controller`: It is responsible for monitoring the status of the node and taking necessary actions to keep the application running. It does with kube-api-server.
+* Node-Controller check the status of the nodes every 5 seconds that way the node-controller monitor the health of the nodes, when it stops receiving the signal the node is marked as unreachable but it waits for 40 seconds before marking as unreachable.
+* After a node is marked as unreachable a node is given 5 min to comeback on if it doesn't it removes the pod assigned to the node and provisions them on healthy ones if the pods are part of repliacasets.
+* `Replication-Controller`: it is reponsible for monitoring the status of replicasets and ensures that the desired number of pods are available all times witin the set. If a pod dies it creates another.
+* All the kubernets intelligences ie Deployment-Controller, Node-Controller, Service-Account-Controller, CronJob, Job-Controller, Stateful-Set, Namespace-Controller, Endpoint-Controller, PV-Protection Controller, RepliacaSet, PV-Binder-Controller, Replication-Controller which are build are implemented through these controllers.
+* This can be considered as brain behind kubernetes.
+* Controllers are packaged into a single process known as Kube-controller-manager, When we install kube-controller-manager differnt controllers get installed aswell.
+* Download kube-controller manager from kubnernetes pages, extract and run it as a service it provides a list of options this is where you provide additional options to customize the controller.
+
+ <img width="1030" height="251" alt="image" src="https://github.com/user-attachments/assets/39baafe1-1915-47dc-9dc0-ca1575680554" />
+
+* Some default controllers are node-monitor-period and teh grace-period, eviction-timeout, etc.
+* There is additional option called as controller where we can specify which controllkers to enable by default all of them are enabled but we can choose to enable a select few.
+* Incase if any of the controller don't seems to work we can check here.
+
+ <img width="851" height="191" alt="image" src="https://github.com/user-attachments/assets/cdf23d1f-3681-432f-84a3-0932fa71f019" />
+
+* To view controller manager options depends on how you install kubernetes. In kubeadm tool kudeadmin deploys a kube-controller-manager as a pod in the kube system namespace on the master node.
+
+ <img width="876" height="222" alt="image" src="https://github.com/user-attachments/assets/bc03e4f6-268d-4fb6-9594-ce2f51345ad4" />
+
+* In non-kubeadm setup we can inspect the options by viewing kube-controller-manager service located at the services directory.
+* We can also see the runing proccess and effective options by listing the processes on the master node. 
+
+
+
+
+
+
+
+
+
+
