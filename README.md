@@ -20,7 +20,7 @@
 * Master(Manage, plan , schedule, Monitor Node) has etcd cluster, kube-api, control-manager, kube-scheduler.
 * * Woeker Node( Host the applications as Containers) has kubelet (kube-proxy), Container Runtime Interface(CRI) (Docker, container d, rkt).
 
-### etcd
+### etcd:
 * It is distributed reliable key-value store which is simple, secure and fast
 * `Traditional databases (relational)` are in the tabular format, which stores the data in the form of rows and colums. Ex: SQL, Relational DBs. Every time when new information is added entire table is get affected and leads to lot of empty cells. These have strict schema and performs complex queries using SQL delivers good performance however it is very regid in the form of flexibility and best for structured data.
 * `Document store stores` in the form of document, each individual is a document. These files can be in any format and the changes in the one file will not affect the other.
@@ -37,7 +37,7 @@
 
  <img width="1070" height="212" alt="image" src="https://github.com/user-attachments/assets/7f8ca4f7-dcbd-4d09-81e6-5bbe2477b0f1" />
 
-### etcd in Kuberntes
+### etcd in Kuberntes:
  <img width="1136" height="586" alt="image" src="https://github.com/user-attachments/assets/c0baca5c-47b8-4983-a8c1-9befd902a8c9" />
 
 * etcd stores the information regarding the nodes, pods, configs, secretes, accounts, roles, bindings, others 
@@ -81,7 +81,7 @@
         --cert /etc/kubernetes/pki/etcd/server.crt \
         --key /etc/kubernetes/pki/etcd/server.key"
   
-### Kube - apiserver
+### Kube-apiserver:
 
  <img width="1152" height="308" alt="image" src="https://github.com/user-attachments/assets/93c77df8-5efd-4c35-acb4-6a4abcc66526" />
 
@@ -98,7 +98,7 @@
 * If we bootstrap our cluster using kubeadmin tool we don't need to know this but if we are setting up in the hardway then kube-api server is available as a binary in kubernetes release page.
 * kube-api server runs with a lot of parameters.
 
-### Kube - Controller - Manager
+### Kube-Controller-Manager:
   
  <img width="957" height="346" alt="image" src="https://github.com/user-attachments/assets/7bf5d089-d632-4563-b699-11f1c6818aea" />
 
@@ -136,8 +136,137 @@
 * In non-kubeadm setup we can inspect the options by viewing kube-controller-manager service located at the services directory.
 * We can also see the runing proccess and effective options by listing the processes on the master node. 
 
+### Kube - Scheduler:
+* It is responsible for scheduling pods on nodes ie the scheduler's only responsibility is to decides which pod goes to which node. It doesn't actually place the pod on the nodes that is the job of kubelet.
+* Kubelet creates the pods and scheduler only decide which pod goes where. 
+* In kubernetes scheduler decides which nodes the pods are placed on depending on certain criteria. We may have pods with different resource requirements.
+* We can have nodes in the cluster dedicated to certain applications, scheduler looks for each pod and tries to find the best node for it.
 
+  <img width="879" height="204" alt="image" src="https://github.com/user-attachments/assets/9d8c0199-f50d-4dbb-9224-981de61fc8c1" />
 
+* Lets assume a pod requires a set up of CPU and memory requirements in this case scheduler goes throuh two phases to idenity the best node for the pod, in the first pahse scheduer tries to filter out the nodes that don't fit the profile for this pod. ex the nodes that don't have sufficient CPU and memory resources requested by the pod.
+* So at first two small nodes are filtered out now we left with two nodes on which the pod can be placed.
+* The scheduler ranks the nodes to identify the best fit node for the pod, it uses priority function to assign a scorer to the nodes on a scale of 1 to 10. Ex schedular calculate the amount of resources that would be free on the nodes after placing pod on them. In this case the one with higher free size will get better rank.
+* We can customize the scheduler and can write our own as per our requirements. Resource Requirements and Limits, Taints and Tolerations, Node Selectors/Affinity.
+
+ <img width="1089" height="377" alt="image" src="https://github.com/user-attachments/assets/9c789d86-bc3d-4294-b25f-ca932a2ac506" />
+
+* To install scheduler we need to download kube-scheduler binary from kubernetes release page=, extract and run it as a servervice.
+* When we run as a service we will spcify the scheduler config file. To view scheduler that depends on how we setup kubernetes. Kubeadm tool deploys scheduler as pod under kube-system namespace on the master node. We can see the options from `/etc/kubernetes/manifests/` folder.
+
+### Kubelet:
+
+ <img width="1086" height="211" alt="image" src="https://github.com/user-attachments/assets/0142553e-c96a-4006-8b83-61697c9642d0" />
+
+* Kubelet in the kubernetes worker node registers the node with kubernetes cluster when it receives the instructions to load a container or pod on the node it requests the container run time engine which may be Docker to pull the required image and run an instance.
+* Kubelet then continues to monitor the state of the pods and containers in it and reports to kube-api server on timely basis.
+* To install kubelet if we are using kube-admn tool to deploy our cluster it does not automatically deploy kubelet this is the difference than other coponnents. 
+* We must always manually install all the kubelet on our worker nodes, download the installer extract it and run it as a service.
+* We can view kubelet processes and effective options by listing the process on the worker node and searching kubelet
+
+### Kube - proxy:
+
+ <img width="880" height="416" alt="image" src="https://github.com/user-attachments/assets/e2c044d2-7755-4317-bec0-82baaad4cdcd" />
+
+* With in a kubernetes cluster every pod can reach every other pod this is accomplished by deploying a pod networking solution to the cluster.
+* A pod network is an internal virtual network that span across all the nodes in the cluster to which all the pods are connected. Through this networking they are able to communicate each other there are many solutions available to deploy such a network.
+* In this case web application deployed on the first node and a database application deployed on the second. The web app can reach the database simply by using IP of the pod.
+* But there is no guarentee that IP of the database pod will always remain the same. The better way to access the web application is by using a service. A service is used to expose the database application across the cluster.
+* The web application now can access the database using the name of the service DB, the service also get an ip address assiged to it. Whenever a pod tries to reach the service using its IP or name it forwards the traffic to the backend pod ie database.
+* The service can't join the pod network because the service is not an actual thing, it is not a container like a pod, it does not have any interfaces or actively listening process. It is virtual component that onluy lives in the kuberenetes memory.
+* Kube-proxy process that runs on each node in kubernetes cluster it looks for new services and every time a new service is created it creates appriate rules on each node to forward traffic to those services to the backend pods to connect the service accessible across the cluster from any nodes.
+* One way it does this is with IP table rules in this case it creates an IP table rule on each node on the cluster to farward traffic heading towards the IP of the servicew which is `10.96.0.12` to the IP of the actual pod which is `10.32.0.15`. This is how kube-proxy configure a service.
+* To install kube-proxy download binary from kubernetes release pages, extract it and run as a service.
+* Kubeadm tool deploys kube-proxy as pods on each node. Infact it is deployed as daemonset so a single pod is always deployed on each node in the cluster.
+
+### Pod:
+
+  <img width="903" height="201" alt="image" src="https://github.com/user-attachments/assets/f76b7d5b-8093-4e30-9b10-49e12c7cbc6f" />
+
+* Kubernetes does not deploy containers directly on the worker nodes. Containers are encapsulated into a kubernetes object known as pod.
+* A pod is a single instance of an application. Pod is a smallest object that can be created in kubernetes.
+* A single node kubernetes cluster with a single instance of our application run on a single docker container encapsulated in a pod.
+* When the number of users accessing the application increases and need to scale the application we need to add addittion instances of the application to share the load.
+* To bringup new additional instances we create all together with new instance of the same application. We will deploy additional pods on a new node on the cluster to expand the capacity.
+* Pods usually have one to one relationship with container running in the application to scale up we create new pods and to scale down we delete the pods.
+* We don't add additional containers to an existing pod to scale the application.
+* A single pod can have multiple containers of different kind, if we need to scale the application we need to create additional pods but in some cases we may need to have a helper container that might be doing supporting task for the main application. Succh as processing user entered data, processing file uploaded by the user etc.
+* If we want have helper containers along side the main container you can have both of these containers are part of the same pod.
+* When a new application container is created helper is also created when it dies helper also dies. Since they are part of the same pod.
+* Two contaners can directly communicate each other by refering local host since they share the same network space and can share the same storage aswell.
+*  When we deploy an application with `docker run python-ap` on docker host. The app is running fine and users are able to access it. When the load increases we will deploy more instances by running the command multiple times. This works fine.
+*  After futher develop of the application and architectural changes it get complex now we have a helper container that helps the main/web application by processing or fetching the data from else where. These helper containers maintain one to one relationship with our application container that need to be communicate with the application container directly to access data from those containers.
+*  For this we need to maintan a map of what app and helper containers are connected to each other and we need to establish network connectivity between these container our self using links and custom networks.
+*  We need to create sharable volumes and shared among the containers, we need to maintain a map of that aswell.
+*  We need to monitor the state of the application container when it died manually kill the helper container. When a new container is deployed we need to deploy helper container aswell.
+*  With pods kuberentes does all of this for us automatically we just neef to define what container pods consists of and containers in the pods by default access to the same storage and network namespace and samefit as in they will be created together and destroyed together.
+* Even our application didn't happened to be complex and we couls live with a single container kubernetes still requires you to create pods but this is good in the long run as your application is now equipped for architectural changes and scale in the future.
+* However multi container pod is a rare use case.
+#### Deploy a pod:
+
+  <img width="879" height="217" alt="image" src="https://github.com/user-attachments/assets/1a9c855b-8be7-4401-bdb7-ef6ec1e7f832" />
+
+* `kubectl run nginx` this command deploys docker container by creating a pod. It first a pod automatically and deploys an instance of nginx docker image.
+* The image is pulled from `docker hub` public repository, where latest images of the various images ares stored.
+* `kubectl run nginx --image nginx` will pull nginx image and creates a pod.
+* The pod will be in container creating state and changes to running state. In the current state we have not made nginx server accessible to external users. We can access internally from the node.
+
+      kubectl run nginx --image nginx
+      kubectl get pods                --> list of pods in the cluster
+ 
+### Pods with YAML:
+
+ <img width="924" height="198" alt="image" src="https://github.com/user-attachments/assets/aeb4796e-0788-47f1-9e84-6ccf3ba51873" />
+
+* Create a pod with YAML. Run `kubectl create -f pod-definiation.yml`
+* metadata provide object type.
+*  Labels are helpul to identify and group the pods in hundereds of pods. It will be difficlut to identify once they are deploy ex front-end and back-end.  We can labels these pods to filter these pods.
+* Under metadata we can specify only `name` and `labels` but we can have any kind of key and value pair. 
+
+* pod-definiation.yml
+  
+      apiVersion: v1.
+      kind: Pod
+      metadata:
+        name: myapp-pod
+        labels:
+          app: myapp
+      spec: 
+        containers: 
+          - name: myapp-container
+            image: nginx:latest
+            ports:
+              - containerPort: 80
+
+* Commands for pods:
+  
+        kubectl get pods                  # list of pods
+        kubectl describe pod <pod-name>   # Provide detailed info of the pod
+  
+### Replication Controller:
+
+ <img width="591" height="215" alt="image" src="https://github.com/user-attachments/assets/0b7d0d3d-3619-4d60-a88e-5be0b0a79909" />
+
+* Controllers are the processes that monitors kubernetes objects and respons accordinlgly.
+* Lets assume a single pod is running our application due to some reason the application crashes and pod fails.
+* Replication controller helps us to run multiple instances of a single pod in a kuberentes cluster thus proving high availability.
+* Even if we have a single pod replication controller can help by automatically bringing up new pod when the existing pod fails thus replicatiion controller ensure that the required number of pods are always running all times even it is one or hundred.
+* Replication controllers are used to create multiple pods to share the load across them. When the numebr of user increases we deploy additional pods in the other nodes to balance the load across the pods in the cluster.
+* Replication conteroller span across the multiple nodes  in the cluster it helps us to balance the load across multiple pods on different nodes aswell as to scale our application when demand increases.
+* `ReplicaSet` and `ReplicationController` both have the same purpose but both are not same. ReplicationController is older technology that is being replaced by replicaset.
+#### Replication Controller.
+* We create `template` section under the `spec` to provide a pod template used by the replicationController to create replicas.
+* Pod template is the same as pod definition file except apiVersion and kind sections.
+* Run `kubectl create -f rc-definition.yml`, which creates a replication controller. It first create pods using pod definition template as many as required.
+* We can see the desired number of replicas/pods the current number of repliacas and how many of them are ready.
+  
+      kubectl get replicationcontroller   --> to view replication controller along with desired and current and ready state pod and age of pods.
+      kubectl get pods  --> to view pods created by replication controller which starts with rc name.
+#### ReplicaSet: 
+*  It is similar to replication controller. Replicaset will have `selector` section helps to identify what pods falls under it.
+* Even though we define template we still need to have selector.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+* 
+  
 
 
 
