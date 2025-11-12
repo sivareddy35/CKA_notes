@@ -295,6 +295,7 @@
       kubectl create -f replicaset-definition.yml
       kuhectl delete replicaset myapp-replicaset  --> Also deletes underlying  pods as well.
       kubectl replace -f replicaset-dfinition.yml
+      kubectl explain replicaset      --> Perovide details of the repliacaset componets.
   
 
 * You can run the below command to scale now need to change in the definition file. We can provide definition file or replicaset name.
@@ -305,11 +306,38 @@
 * Even after updating the replicas but the number of replicas in the dedfinition file will not change.
 * There are also options available to automatically scaling  the replicas based on the load.
 
+#### Deployments:
+     <img width="1112" height="334" alt="image" src="https://github.com/user-attachments/assets/49d53ef0-5d36-4252-a888-ad3a766124bf" />
+
+* Suppose we have a web server in production environment it need not to be one many such instances of web servering running obvious reasons. 
+* Whenever newer versions of the application builds are available in docker registry you would like to upgrade your Docker instances seemlessly.
+* However when you upgrade the instances we don't want upgrade all of them once as we did  this may impact users access the application.
+* So we might want them upgrade them one after the other. This kind of update is knowns as rolling updates.
+* Suppose one of the update we perform resulted an unexpected error and wanted to undo the recent changes. You would like to be able to rollback the changes that were recently carriedout.
+* If we want to make multiple changes in you environment such as upgrading the web server version=, scaling your environment and modifying the resource allocations, etc.
+* We don't want to apply each change immediately after the command is run instead you would like to apply a pause to your eniovironment, make the changes and resume so that all the changes are rolledout together.
+* All of these capabilities available with kubernetes deployments.
+* Pod deploys a single instance of an application such as webapp. Each container is encapsulated in pods, such pods are deployed using repliacationController/replicaSet.  
+* Deployment is kubernetes object that comes higher in the hierarchy. It provides the capability to upgrade the underlying instances seemlessly using rolling updates, undo changes and pause and resume changes as required.
+* Pods and replicasets are created by default once deployment is created.
   
+      kubectl create -f deployment-definition.yml
+      kubectl get deployments
+      kubectl get rs
+      kubectl get all   --> we can see all objects created in kuberntes 
 
-
-
-
-
-
+#### CKA tips:
+* Reference link: `https://kubernetes.io/docs/reference/kubectl/conventions/`
+* Create an NGINX pod
+  
+      kubectl run ngnx --image=nginx
+* Generate POD Manifest YAML file (-o ymal). Don't create it(--dry-run)
+  
+      kubectl run nginx --image=nginx --dry-run=client -o yaml
+* Create a deployment
+  
+      kubectl create deployment --image=nginx nginx
+* Generate Deployment YAML file (-o yaml). Don't create it (--dry-run)
+  
+      kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
 
