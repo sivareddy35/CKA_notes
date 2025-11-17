@@ -404,9 +404,18 @@
 * To link the service to a set of pods we use selector we will refer to the pod definition and copy the labels from it under selector.
 * The service can be accessed by the other pods using clusterIP for the service name.
 
-     kubectl create -f clusterip-definition.yml
-     kubectl get services. 
+       kubectl create -f clusterip-definition.yml
+       kubectl get services
+  
+#### Service-LoadBalancer
+  <img width="942" height="267" alt="image" src="https://github.com/user-attachments/assets/3e1fd8d1-e47f-4bb1-baab-eac601115116" />
 
+* NodePort service that makes us an external facing application available on port on the worker node.
+* In the frontend apps voting and result app these pods are hosted on the worker node in a cluster to make acceessible to extenal users we create service type as NoePort.
+* The services with NodePort help in receiving traffic on the ports on the nodes according the traffic on the respective pods.
+* We can access this endpoint url with <ip_of_any_nodes>:<Node_port_IP>. Even though our pods are hosted on two nodes they will be still accessible on IPs of all the nodes in the cluster.
+* Say the pods for voting app are deployed on the nodes with IP 192.168.56.70 & 192.168.56.71 they will still accessible on the ports of all the nodes in the cluster This is how service is configured.
+* We will share the URLs to users to access the applications. 1.40
 
 
 
