@@ -1,4 +1,4 @@
-<img width="1177" height="206" alt="image" src="https://github.com/user-attachments/assets/5dc93bc2-25e4-4760-8e2b-547882048315" /># CKA_notes
+<img width="1177" height="206" alt="image" src="https://github.com/user-attachments/assets/5dc93bc2-25e4-4760-8e2b-547882048315" />
 
   <img width="487" height="263" alt="image" src="https://github.com/user-attachments/assets/2b072250-658e-4662-927c-1c52bc0eda82" />
 
@@ -404,10 +404,70 @@
 * To link the service to a set of pods we use selector we will refer to the pod definition and copy the labels from it under selector.
 * The service can be accessed by the other pods using clusterIP for the service name.
 
-     kubectl create -f clusterip-definition.yml
-     kubectl get services. 
+       kubectl create -f clusterip-definition.yml
+       kubectl get services. 
+### Service:
+  <img width="777" height="213" alt="image" src="https://github.com/user-attachments/assets/ecd0cb13-37c6-4e4d-a64a-a4e1cfeddbce" />
 
+* Services enable communication between the groups of pods, services running on the front end pods, enable communication to the end user, frontend and backend communication and helps to establish connectity to external database source thus services enable loose coupling between micro services in our application.
+* We deploy our pod havuing web application runnning it we being the external user we can access the web page, the existing setup, kubernetes node has an IP addess 192.168.1.2 and the laaptop is on the same network too with IP of 192.168.1.10.
+* Internal pod ntwork is with 10.244.0.2 and pod with 10.244.0.2, we can't directly ping from the external user, we can ssh this from external user to kuberenetes node at `curl http://10.244.0.2`.
+* From the node we will be access to the webpage by using curl or if the node has GUI fireup the browser and see the webpage but this is from inside the kubernetes node.
+* But we need to access the webserver from own laptop without ssh to the node by simply accessinhg kubernetes node. 
+* Kubernetes services is an object just like pods, replicasets, deployments one of its use case is to listen to a port on the node and forward the request on that port to  a port ruuning on the web application this type of service is `node-port` service because the service listens to a port on the node and forard reqest to the pods.
+#### Service types:
+ * ** NodePort**: where the service makes an internal port accessible on a port on the node.
+ * **ClusterIP**: In this case service creates an virtual IP inside the cluster and enable communication between differnt services such as a set of frontend servers to a set of backend servers.
+ * **LoadBalancer**: Where it provisions a load balancer for our application in supported cloud provider. Ex: To distribute the load across differnt web servers in your frontend tier.
 
+   <img width="406" height="188" alt="image" src="https://github.com/user-attachments/assets/d5c394d6-ddb1-4316-85ec-f14ac9af7eff" />
 
+* **Service-NodePort**:
+ <img width="781" height="419" alt="image" src="https://github.com/user-attachments/assets/917334a8-c2a5-40dc-86e1-945213a6d68c" />
 
+  * A service can help us by mapping a port on the node to a port on the pod, there are 3 ports involved the port on the pod where the actual web server is running is 80 and it is reffered to as the target port becasuse that is where the service forwards the request to.
+  * The second port is the port on the service it self, referref to as the port, these terms are from the view point of the service.
+  * The service is infact like a virtual server inside the node, inside the cluster it has its own IP address and that IP address is called Cluster IP of the service.
+  * The port on the node itself which we use to access webserver externally and that is known as node port, set to 3008 here. 
+  * The node ports can only be in a valid range which by default from `30000-32767`.
+  * Out of targetPort, NodePort and port only mandatiry field is only port, if we don't provide target port it is assumes to be same as port.
+  * If we don't provide NodePort it will auto assign a free port in the valid range of 30000-32767 range and ports are an array. 
+  * We can have multiple such port mapping within a single service.
+  * There could be hundreds of other pods with web services running on port 80 we will use labels and selectors to link these together. We will add selector section to brindhg the label to service definition file this links the pod.
+    
+        kubectl create -f service-definition.yml
+        kubectl get services
+        curl http://192.168.1.2:30008 
 
+    <img width="1061" height="210" alt="image" src="https://github.com/user-attachments/assets/cb8a0496-0936-4e08-b288-c1ce61db51a2" />
+
+* In the prooduction environment you have multiple instance of yor web application is runnning for hugh availability and load balancing purposes in this case When we have multiple similar pods running on our web application they all have the same labels the same label is used as a selector during the creation of the service.
+* When a service is created it looks for a matching pod with the label and finds the pods of the web application.
+* The service then acutomatically select all the pods matching with label as end points to forward the external request comingh from the user.
+* We don't need to do any additional configuration to make this happen the algorithem used to balance the load across three different pods, it is Random algorithem thus the service acts as built in loadbalacer to distribute the load across diffirent pods. SessionAffinity :yes
+* When the pods are distribute across multiple nodes in this case we have web application on pods on nodes on a separate cluster when we create a service without us having to do any additional configuration kubernetes automatically creates a service that automatically spans across all the nodes in the cluster and maps the taraget port to the same NodePort on all the nodes in the cluster this way we can access the application by using ip of any node in the cluster and using the same port number (30008 here).
+* We can access the web appication using any of the IP of these nodes and trying to curl the same port, the same port is available on all available on all the nodes as part of the cluster.
+* In any case whether it can be a single pod on a single node and multiple pods on a single node or multiple pods on multiple nodes the service created will be the same witout you having to do any additional steps during the service creation.
+* When the pods are removed or added the service will be auto updated making it highly flexible and adaptive. Once created we won't make any additional configuration changes.
+   
+*** ClusterIP**:
+
+   <img width="898" height="154" alt="image" src="https://github.com/user-attachments/assets/ac5ae374-c920-4bc0-b197-89ef39fbd990" />
+
+* A full stack web application typically has differnt kinds of pods hosting differnt parts of an application. 
+* We may have many number of apps running on frontend web server, another setof servers running on backend servers and a set of servers ruuning for a key-value store like redis and another setof pods running a persistent database like mySql.
+* The webfrontend server need to communicate to the backend servers and the backend servers neeed to communicate with database aswell as redis services, etc.     
+* The right way to establish connectivity between the services or tiers of my application, the pods have an ip addresses assigned to them but these IPs are not static these pods can go down any time and new pods are created all the time.
+* So we can't reply on these IP addresses for internal communication between the application, and if the frontend pod 10.222.0.2 want to connect to backend service a kubernetes service helps to make this decision.
+* A kubernetes service can help us group the pods together and provide a single interface to access the pods in a group. For example a service created for the backend pod will help to group all the backend pods together and provide a single interface for other pods together and provide a single interface for other pods to access the service.
+* The requess are forwarded to one of the pods under the service. The requests are forwarded to one of the pods under the service randomly.
+* Similarly create additional services for Reids and allow the backend pods to access the Redis systems through services.
+* This enables us to easily and effectively deploy a microservices based applicatoion on a kubernetes cluster. Each layer can now scale or move as required without impacting communication between the various service.
+* Each service gets an IP and name assigned to it inside the cluster and that is the name that should be used by other pods to access the service. This type of service is called as ClusterIP. 
+* To create such a service always use definition file and in the spec section update type to `ClusterIP` but by default sevice type is ClusterIP even we didn't specify it. Target port is the porty where backend is exposed here it is 80 and port is where the service is exposed and update selector.
+  
+        kubectl create -f service-definiation.yml
+        kubectl get services
+
+* The service can be accessed by other pods using clusterIP or the service name. 
+* 
