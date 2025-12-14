@@ -2,6 +2,8 @@
 
   <img width="487" height="263" alt="image" src="https://github.com/user-attachments/assets/2b072250-658e-4662-927c-1c52bc0eda82" />
 
+
+* KodeKloud docs ref: https://notes.kodekloud.com/
 * Kubernetess purpose is to host the applications in the form of containers in autiomated fashion so that we can easily as many instance of the applications as required to enable communication between different service within our application.
 * There are many thing involved to work with:
 * Master Node:
@@ -328,6 +330,7 @@
 
 #### CKA tips:
 * Reference link: `https://kubernetes.io/docs/reference/kubectl/conventions/`
+  
 * Create an NGINX pod
   
       kubectl run ngnx --image=nginx
@@ -468,6 +471,195 @@
   
         kubectl create -f service-definiation.yml
         kubectl get services
+        kubectl get svc -A        # all namespaces
+        kubectl describe service  # provide detailed info of the services, we can check endpoints as well
 
-* The service can be accessed by other pods using clusterIP or the service name. 
-* 
+        alias k='kubectl'        # Set alias k for kubectl
+         
+* The service can be accessed by other pods using clusterIP or the service name.
+* End points are the pods that serivice is idenified th traffic going to based on selector specified on the service and lables on the pods.
+
+* **Certification tips:**
+ * `--dry-run`: By default as soon as the command is run the resource will be created.
+ * `--dry-run=client` this will not create resource, instead tell you whether the resource can be created and if yoour command is right.
+ * `-o yaml`: This will output the resource definition in YAML format on screen.
+
+        kubectl run nginx --image=nginx                                 # crete a pod
+        kubectl run nginx --image=nginx --dry-run=client -o yaml        # It generate POD manifest file in YMAL --dry-run (Don't create)
+        
+        kubectl create deployment --image=nginx nginx                   # Create a deployment
+        kubectl create deployment --image=nginx nginx --dry-run=client -o yaml # Generate deployment YMAL file ( -o yaml). Don't create it (--dry-run)
+        
+        kubectl create deployment nginx --image=nginx --replicas=4     # Create deployment with 4 replicas
+        kubectl scale deployment nginx --replicas=4                    # Scale deployment replicas
+        
+        kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > nginx-deployment.yml     # Save the deployment YAML definition
+        
+        kubectl expose pod redis --port=6379 --name redis-service --dry-run=client -o yaml                # redis-service with ClusterIP to expose pod on 6379, uses pod labels as selectors
+        
+        kubectl create service clusterip redis redis --tcp=6379:6379 --dry-run=client -o yaml             # This don't use pod labels, assume selectors as app=redis, can't pass in selectors as an option so generate file and modify selector before service creation
+        
+        kubectl create service nodeport nginx --tcp=80:80 --node-port=30080 --dry-run=client -o yaml       # It don't use the pods lables as selectors
+
+ * The default output formaat of `kubectl` command is human-readable plain-format. Oher formats.
+  * `-o jason` output a JSON formatted API object
+  * `-o name` Print only the resource name and nothing else
+  * `-o wide` Output in a plain-text format with any additional information.\
+  * `-o yaml` Output a YAML formatted API object
+    
+        # output in JSON format:
+    
+        master $ kubectl create namespace test-123 --dry-run -o json
+        {
+            "kind": "Namespace",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "test-123",
+                "creationTimestamp": null
+            },
+            "spec": {},
+            "status": {}
+        }
+        master $
+
+        
+        # Output with YAML format:
+    
+        master $ kubectl create namespace test-123 --dry-run -o yaml
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          creationTimestamp: null
+          name: test-123
+        spec: {}
+        status: {}
+
+        
+        # Output with wide(additional details):
+    
+        master $ kubectl get pods -o wide
+        NAME      READY   STATUS    RESTARTS   AGE     IP          NODE     NOMINATED NODE   READINESS GATES
+        busybox   1/1     Running   0          3m39s   10.36.0.2   node01          <​none​>         <​none​>  
+        ningx     1/1     Running   0          7m32s   10.44.0.1   node03          <​none​>         <​none​> 
+        redis     1/1     Running   0          3m59s   10.36.0.1   node01          <​none​>         <​none​> 
+        master $
+##### Ref docs link:
+* https://kubernetes.io/docs/reference/kubectl/overview
+* https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+#### kubectl explain:
+  <img width="904" height="465" alt="image" src="https://github.com/user-attachments/assets/e253fe33-3690-4fb4-8a52-0c067daaf4cf" />
+  
+  <img width="896" height="272" alt="image" src="https://github.com/user-attachments/assets/1be052f3-509f-4028-879c-1fd36bfbf428" />
+
+
+* we can learn a lot about the resources and fields witout leaving the terminal.
+* `kubectl api-resources` it list all the resources this is specially useful when we can't find on the documentation pages. If you ever forget resource name or short name or you are not sure of the underlying vesion of the API such as `v1` or is it `apps/v1` or if you are not sure exact case of resource name to be used while creating a definition file you can use kubectl api-resource command.
+* Once you identify the resource name from the list and you need more information about the resource fileds and types under it and then you can run `kubectl explain <resource_name>` to be exlained, in this case pod list all top level fields in pods being API version, kind, metadata and spec and status and provide type of each field and description, only diplays top level fields.
+* T9 get more deeper use `kubectl explain <resource_name>.spec` this lists the subfields within it but this again lists the sub properties of parent property that you have mentioned.
+* But it is still not comprehensive so to list all the fields in the way that you would put in a YML file used a recxursive flag, it now outputs the entire comprehensive list of fields that's available on that resource.
+
+       kubectl run redis1 --image redis:alpine --labels tier=front-end
+       kubectl run --help
+       kubectl create service clusterip --help
+       kubectl expose --help
+       kubectl describe svc <service_name>
+
+#### Docker Images:
+  <img width="772" height="609" alt="image" src="https://github.com/user-attachments/assets/93590adf-54d1-41c2-807c-5bc5b178abf0" />
+
+* We need to create our own image because we either can't a component or a service you want to use as part of your application on DokcerHub already or you and team decided that the application you are developing will be dockerized for ease of shipping and deployment.
+* A simple web application built using python Flask framework first you need to understand what you are containerizing and what application we arecreating an image for and how the application is built.
+* If you want to deploy an application manually write down the steps required in right order.
+  * Start with an OS like ubuntu
+  * update the source repositories using apt command
+  * install dependencies using apt command
+  * install python dependencies using pip command
+  * Copy over the source code of the application to a location like `/opt`
+  * Finally run the web server using flask command.
+* Create a docker image
+  * Create a docker file named `Dockerfile` and write down the instructions for settingup your application in it, such as installing dependencies, where to copy the source code from and to and what the entry point of the application is, etc.
+  * Once done build your image with docker build command and specify the docker file as input as well as a tag name for that image.
+  * This will create an image locally on your system to make it available on the public docker hub registry run docker push command and specify the name of the image.
+  * The name of the image is your dokcerhub account name followed by image name which is my custom app.
+* Docker file is a text file written in a specific format that docker can understand it's in instruction and argument format.
+* Everything in the left Capitals is an instruction in this case `FROM`, `RUN`, `COPY` and `ENTRYPOINT` are all instructions.
+* Each of these instruct docker to perform a specific action while creating the image.
+* Every thing on right is an argument to those instructions. The first line from Ubuntu defines What base OS should be for this container.
+* Every docker images must be based off of another image either an OS or another image that was created before based on an OS.
+* All dockerfiles must start with a from instruction, run isntruction instruct docker to run a particular command on those base images.
+* Docker runs apt get update command to fetch the updated packages and install dependencies on the image. 
+* Copy instruction copies files from the local system onto the docker image in this case source code of our application is in the current folder and it is copying to the location /opt source code inside the docker image.
+* Entrypoint allows us to specify a command that will be run when the image is run as a container.
+* When docker builds the images it builds this in a leyered architecture, each line of the instruction creates a new layer in the docker image with just changes from the previous layer.
+* ex: First layer is base ubuntu OS, followed by second instruction that creates a second layer which installs all apt packages. Third instruction creates a third layer with Python packages , followed by fourth layer that copies the source code over and the final layer that updates the entrypoint of the image.
+* Since each layer only stores the chnages from the previous layer, it is reflected in the size .
+* We can check size of each layer by running `docker history <image_name>`
+* When we run docker build command you could see various steps involved and the result of each task.
+* All the layers build are cast so the layered architecture helps you restart docker build from that particualr step in case fails.
+* Or if you were to add new steps in the building process you won't have to sart all over again.
+* All the layers build are cached by docker incase a particular step  was to fail.
+* Ex Step3 failed and you were to fix the issue and rerun Docker build it reuse the previous layer from cache and continue to build the remaining layers. 
+* The same is true if you add adding additional steps in the Dockerfile, this way rebuilding image is faster, and you don't have to wait for docker to rtebuild the entire image each time.
+* This is helpful especially when you update the source code of your application as it may change more frequently.
+#### Commands and Arguments in Docker:
+* When we run `docker run ubuntu` it run an instance of ubuntu image and exits immediately.
+* Unlike virtual machine containers are not meant host operating system, containes are meant to run a specific task or process such as to hosty an instance of a web server or app server or database server or simply to carrout some kind of compution or analysis.
+
+      docker run ubuntu
+      docker ps        # lists running containers
+      docker ps -a     # lists all container including stopped
+  
+* Once the task is completes the containers exists, the container lives as long as the process inside it is alive.
+* If the web server inside the container is docked or crashes the container exits.
+* CMD instruction defines the program that willbe run within the docker container when is starts. For Nginx image, it is Nginx command & for MySQl image, it is MySQLD command.
+* In the earlier we used to run a plain ubuntu operating system 
+* Docker file has default command as bash but bash is not really a process like web server or database server. It is a shell that input from a terminal if it can't find a terminal it exits.
+* When we run a ubuntu container, docker created a container from ubuntu image and launch bash program. By default docker does not attach a terminal to a container when it run.
+* So bash program can't find the terminal and so it exits. Since the process that was started when the container was created finished. The container exits as well.
+* To start the container we can specify diffrent command is by appending a command to docker run command and this wayover rides the default command specified within the image in this case `sleep 5` command as an option.
+* `docker run ubuntu [Command]` `docker run ubuntu sleep 5`. 
+* This way when a container starts it runs sleep program, wait for 5 seconds and then exits.
+* If we want the image always run sleep command when it starts it will then creates its own image from the base Ubuntu image and specify new command.
+* There are different ways of specifying commands either the command is as is in shell form or in a json array format. When we specify in Json format the first element in the array is executable here sleep program.
+* Don't specify command and parameter together, the command and the parameter should be separate elements in the list.
+
+ <img width="732" height="599" alt="image" src="https://github.com/user-attachments/assets/cfc1a230-2c4f-4e7b-955f-43a2e239cc1d" />
+
+
+ <img width="771" height="256" alt="image" src="https://github.com/user-attachments/assets/79eb7ce4-d253-4c62-87f1-5818b631601e" />
+
+* It always sleeps for 5 seconds and exits.
+* If we want to chage the default sleep time of 5 sec to another value, one option is use docker run command with new command appended to it, here sleep 10.
+* We want to pass the number of seconds the container should sleep and the sleep command should be invoked automatically that is where ENTRYPOINT instruction comes into play.
+*  ENTRYPOINT defines the executable command, CMD provides default args as you can specify the program that will run as you specify when the container starts.
+*  Whatever you specify in the command line in this case 10 will be appended to entrypoint.
+   
+  <img width="384" height="210" alt="image" src="https://github.com/user-attachments/assets/21829f97-7b46-4af5-b8e7-e2c655a032dd" />
+
+* So that command that runs when the container starts is sleep 10. This is the difference between these two.
+* Incase of CMD instruction command line parameters pass will get replace the entirely where as incase of ENTRYPOINT command line parameters will get appended.
+* Now in the second case if we run ubuntu-sleeper command `docker run ubunu-sleeper` without appending the number of seconds.
+* In this case the commandlins startup will just sleep and will get the error the apparand is missing.
+* We can configure a default value if one was not specified this is where we use both ENTRYPOINT aswell as  CMD instruction. In this case command instruction will be appended to ENTRYPOINT instruction at the startup the command would be sleep 5 if we didn't specify any parameters in the command line.
+* If we did it will over ride the command instruction to happen this we should always specify the ENTRPOINT and CMD instruction in JSON format.
+* If you really want to modify the ENTRYPOINT during the runtime say from sleep to an imaginary sleep2.0 command. In this case you can over ride it by using ENTRYPOINT option in the docker run command.
+* The final command at the startup will then be sleep2.0 10
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
