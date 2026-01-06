@@ -645,7 +645,68 @@
 * If we did it will over ride the command instruction to happen this we should always specify the ENTRPOINT and CMD instruction in JSON format.
 * If you really want to modify the ENTRYPOINT during the runtime say from sleep to an imaginary sleep2.0 command. In this case you can over ride it by using ENTRYPOINT option in the docker run command.
 * The final command at the startup will then be sleep2.0 10
-  
+
+#### Application - Commands and Arguments:
+docker run --name ubuntu-sleeper ubuntu-sleeper     ==> By default it sleeps for 5 sec
+docker run --name ubuntu-sleeprt ubuntu-sleeper 10  ==>  to over the default value
+
+* If we need to container to sleep for 10 seconds as in the second command, we can specify the additioanl argument in pod definition file by adding `arg`  property. Ie every thing that is appended to docker run command will go to args property, in the form of an array.
+
+      apiVersion: apps/v1
+      kind: pod
+      metadata:
+        name: ubuntu-sleeper-pod
+      spec:
+        containers:
+          - name: ubuntu-slpeer
+            image: ubuntu-sleeper
+            args: ["10"]
+            
+* When we try to relates to this with docker file created earlier, dokcer file has an `ENTRYPOINT` as well as `CMD` instructions specified.
+* `ENTRYPOINT` is the command that is run at the startup and `CMD`is the default parameter passed to the command.
+* With  `args` option in the pod definition file, we will over ride CMD instructions in DockerFile. 
+* If we need to over ride the Entrypoint ex: sleep to sleep2.0 command, in the docker world we will run the docker run command option with entrypont option setto new command, the corresponding Entry in the pod definition file would be using a command field, the command field corresponds to entry point instruction in the docker file.
+* There are two fields that corresponds to instructions in the docker file, command filed override Entrypoint instruction and args field overrides CMD instruction in the Docker file.
+* It is not the command filed that over rides CMD instruction in the Dockerfile.
+ 
+ <img width="821" height="445" alt="image" src="https://github.com/user-attachments/assets/81a998dd-ec0c-4df0-8ee0-e5ccb6e2753f" />
+
+* We can't edit specificatios of an existing POD other than the below.
+   * spec.containers[*].image
+   * spec.initContainers[*].image
+   * spec.activeDeadlineSeconds
+   * spec.tolerations
+ * We can't edit the environment variables, service acounts and resource limits of running pod. If we want to, ypu have two options:
+* 1. Run `kubectl edit pod` command. This will open the pod specification in an editor. Then edit the required properties when you try to save it, you will be denied. This is because the fields on the pod that is not editable.
+  * A copy of the file with changes is saved in a temporary locations.
+  * You can then edit the existing pod by running the command.
+    
+          kubectl edit pod webapp
+  * Then create a new pod with your changes using the temporary file:
+    
+          kubectl create -f /tmp/kubectl-edit-ccrq.ymml
+ * 2. The second option is to extract the pod defined in YAML format to a file using the command.
+ 
+          kubectl get pod webapp -o yaml > my-new -pod.yaml
+   * Then make the changes to exported file using an editor and save the changes.
+   
+          vi my-new-pod.yml
+   * Then, delet the existing pod
+   
+          kubectl delete pod webapp
+   * Then create a new pod with the edited file.
+   
+          kubectl create -f my-new-pod.yml
+          kubectl replace -force -f <new-pod-definition.yml>    ==> used to edit the fileds in a running pod
+          kubectl run <pod-name> --image <image-name> --dry-run=clinet -o yaml > pod.yml
+
+  * **Edit Deployments**:
+   * With deployments you can easily edit any filed/property of POD template. Since the pod template is a child of deployment specification, with every chnage, the deployement will automatically elete and create a new pod with the new changes. So, if you are asked to edit a poperty of POD part of a deployment, you may do that simply by runnig the command.
+
+          kubectl edit deployment my-deployment
+   
+
+
 
 
 
