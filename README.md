@@ -647,6 +647,9 @@
 * The final command at the startup will then be sleep2.0 10
 
 #### Application - Commands and Arguments:
+
+  <img width="814" height="453" alt="image" src="https://github.com/user-attachments/assets/10e065dd-5394-4344-85ff-772b72bb1973" />
+
 docker run --name ubuntu-sleeper ubuntu-sleeper     ==> By default it sleeps for 5 sec
 docker run --name ubuntu-sleeprt ubuntu-sleeper 10  ==>  to over the default value
 
@@ -707,13 +710,161 @@ docker run --name ubuntu-sleeprt ubuntu-sleeper 10  ==>  to over the default val
    
 
 
+* **Envirtonment Variables**:
+
+ <img width="264" height="237" alt="image" src="https://github.com/user-attachments/assets/fa506fec-2515-445d-91a7-c8afc88eb982" />
+
+* To set environment variable, use ENV property. ENV is an array. So every item under ENV property starts with `-` indicating an item in the array. Each item has name and value property.
+* ENV value types:
+  * Plain Key Value:
+  
+        env: 
+          - name:APP_COLOR 
+          
+  * ConfigMap:
+  
+        env: 
+          - name: APP_COLOR
+            valueFrom:
+              configMapKeyRef:
+  
+  * Secrets:
+
+          env:
+            - name: APP_COLOR
+              valueFrom:
+                secreteKeyRef:
+        
+  
+* **ConfigMaps**:
+
+ <img width="918" height="540" alt="image" src="https://github.com/user-attachments/assets/e4e2dc43-cd23-4db5-ab67-584969489cd8" />
+
+* When we have a lot of environment variable files it will become difficult to manage the environment data stored within the various files.
+* We can take this information out of the pod definition file and manage it centrally using ConfigMaps. ConfigMaps are used to pass configuration data in the form of key-value pairs in Kubernetes. When a pod is created, inject the ConfigMap into the pod so the key value pairs are available as environment variable for the application hosted inside the container in the pod.
+* There are two phases involved in configuring ConfigMaps. Create the ConfigMap and Inject them into Pod.
+* There are two ways of creating configMap imperative way (witout using a configMap definition file) and declarative (Using coinfigMap definition file).
+
+ <img width="885" height="566" alt="image" src="https://github.com/user-attachments/assets/e8ea097e-34de-4324-a266-2c9ffceb7975" />
+
+* *Imperative*:
+
+     kubectl create configmap <config-name> --from-literal=<key>=<value>
+     
+     kubectl create configmap app-config --from-literal=APP_COLOR=blue --from-literal=APP_COLOR=blue --from-literal=APP_MOD=pod
+
+kubectl create configmap <config-name> --from-file=<path-to-file>
+
+kubectl create configmap configmap app-config --from-file=app_config.properties
+
+* *Declarative*:
+
+    #config-map.yml
+
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: app-config 
+    data:
+      APP_COLOR: "blue"
+      APP_MODE: "prod"
+
+kubectl apply -f config-map.yml
+
+* There would be multiple config maps that's it is essential to name configmap appropriately. as we will be using these names later while associating with pods.
 
 
+* **View ConfigMaps**:
+
+      kubectl get configmaps
+      kubectl describe configmaps
+
+* **ConfigMap in Pods**:
+
+ <img width="543" height="367" alt="image" src="https://github.com/user-attachments/assets/dbbb10ba-2865-4719-928b-347b5181d995" />
 
 
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+          name: app-config 
+      data:
+        APP_COLOR: blue
+        APP_MODE: prod
+      
+      ---
+      apiVersion: v1
+      kind: Pod 
+      metadata:   
+        name: simple-webapp-color 
+      spec:  
+        containers:    
+          - name: simple-webapp-color 
+            image: simple-webapp-color
+            ports:
+              - containerPort: 8080
+            envFrom:
+               - ConfigMapRef:
+                  name: app-config
 
+ 
+    kubectl create -f pod-definition.yml
+  
+* **Kubernetes Secrets**:
 
+ <img width="909" height="549" alt="image" src="https://github.com/user-attachments/assets/e4f19240-4731-448f-b2da-d80fec83a0df" />
 
+* Hardcoding user name and passwords are not good idea, one option is to move these values to  Configmap. This configmap stores the configuration data in plain text format, it would be okay to store host name and user name but it it is not the right place to store the password.
+* This is where secretes comes in, secretes are used to store sensitive information such as passewords and keys. They are similar to configMaps except that they are encoded or hashed format.
+* As with configmaps there are two steps involved in working with secretes. First create secret and second innject it to pod. 
+* We can create a secret in two ways one in imperative (without using a secret defination file ) and another declarative (by using a secret deinfinition file).
+* With the imperative method we can directly specify the key value pairs in the command line itself.
+
+ <img width="939" height="554" alt="image" src="https://github.com/user-attachments/assets/20c6ed51-a5e2-4b6d-8fd0-b13284cedd90" />
+
+* #### Imperative:
+
+    kubectl create secret generic <secret-name> --from-literal=<key>=<value>
+
+    kubectl create secret generic app-secret --from-literal=DB_Host=mysql \
+     --from-literal=DB_User=root \
+     --from-literal=DB_Password=paswrd
+ 
+ * This is complicated if we have too many secrets, instead we can input secret data through a file.
+ 
+     kubectl create secret generic <secret-name> \
+       --from-file=<path-to-file>
+
+    kubectl create secret generic app-secret --from-file=app_secret.properties
+    
+* The data under the file is read and stored under the name of the file.
+
+* ##### Declarative:
+* Since the secrets are used to store sensitive data and are stored in an encoded format, under the data section we must update secret values in a hashed format. So we must specify the data in an encoded form.
+* Kubenetes create another secret for its internal purposes.
+* `kubectl describe secretes` this shows the attributes in the secret but hides the values by them selves, to view the values as well run `kubectl get secret app-secret -o yaml`.
+
+  <img width="739" height="283" alt="image" src="https://github.com/user-attachments/assets/25fed84f-2dd4-45ce-b001-fe537759fb9b" />
+
+* We can inject secret as a single environment variable or inject the hole secret as a files in a volume. If you were mount secrete as a volume in the pod, each attribute in the secret is created as a file with the value of a secret as its content.
+* Secrets are not encrypted, so it is not safer in that sense. However some best practices ari=ound using secrets make it safer. Some best practices are
+ * Not checking un secret object information files to source code repositories.
+ * Enabling Encryption at Rest for Secrets so they are stored encrypted in ETCD.
+ * The way kubernetes hangles secrets. Such as:
+  * A secret is only sent to a node if a pod on that node requies it.
+  * Kubelet stores the secret into a tmpfs so that the secret is not writen to disk storage.
+  * Once the pod that depends on the secret is deleted, kubectl will deletes its local copy of the secret data aswell.
+* Best practices are:
+ * Enable Encryption at Rest for secrets.
+ * Enable or configure RBAC rules with least previlege acess to secret.
+ * Restrict access to specific containers.
+ * Consider using external Secret Stire Providers.
+* Uses of Secrets:
+ * Set environment variables for a container.
+ * Provide credentails such as SSH keys or passwords to Pods.
+ * Allow the kubectl to pull container images from private registries.
+ * Control plane uses secrets for bootstrap token secrets are a mechanism to help automate node registration.
+ 
 
 
 
