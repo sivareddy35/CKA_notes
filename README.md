@@ -864,7 +864,15 @@ kubectl apply -f config-map.yml
  * Provide credentails such as SSH keys or passwords to Pods.
  * Allow the kubectl to pull container images from private registries.
  * Control plane uses secrets for bootstrap token secrets are a mechanism to help automate node registration.
- 
+
+# Secrete Store CSI Driver:
+* There are tools like external Secrets Operators (Hashicop Vault, AWS Secret Mamager, Secret Manager(GCP), Key Vault (Azure) ), Sealed Secrets, Secret Store CSI Driver.
+* All of the organizations started using external secret stores like Hashicorp (vault, AWS Secrete manager, ect. wich allows organizations to manage all of these secrets in one central location in any of the plat forms.
+* The secrets are pulled by using an API so that we don't want to manage secrets across multiple diffirent locations.
+* So the secretes storred in the external secrete storages, we need a way for kubernetes to be able to pull these secrets and store them and syn them within native kubernetes secrets. So that any application running in the kubernetes cluster can actually make use of this secrets.
+* So nagtively, these is no way to do that that's why ultimately tools like secret store CSI driver, the exteranl secret store operator have been created. So that we can actually sysnc  secrets from secrete store to kubernetes cluster.
+* Secret Store CSI driver synchronizes secrets from an external APIs and mounts them inot containers as volumes.
+* Allows you to manage secrets in a central place like Hashicorp Valt or AWS Secrets manager.
 
 
 
@@ -872,6 +880,6 @@ kubectl apply -f config-map.yml
 
 
 
-
+* 
 
 
